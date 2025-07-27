@@ -5,6 +5,7 @@
 #ifndef STEPRUNNER_H
 #define STEPRUNNER_H
 #include <functional>
+#include <chrono>
 #include <memory>
 #include <thread>
 
@@ -37,6 +38,8 @@ private:
     std::thread _thread;
     std::atomic<bool> _isRunning = false;
     std::atomic<bool> _stepRequest = false;
+    std::chrono::time_point<std::chrono::high_resolution_clock> _startTime;
+    std::chrono::microseconds _lastRunTime = {};
 
     StepFunction _stepFunction;
     CleanupFunction _cleanupFunction;

@@ -56,6 +56,8 @@ void StepRunner::drawGui() {
         if (ImGui::Button("Stop")) {
             stop();
         }
+    } else {
+        ImGui::Text("Last run: %.2f ms", _lastRunTime.count() / 1000.0);
     }
 }
 
@@ -65,6 +67,7 @@ bool StepRunner::isRunning() const {
 
 void StepRunner::worker() {
     _log << "Worker started" << std::endl;
+    _startTime = std::chrono::high_resolution_clock::now();
     try {
         while (_isRunning) {
             if (_mode == Mode::Automatic) {
@@ -89,6 +92,7 @@ void StepRunner::worker() {
         _log << "Worker exception: " << e.what() << std::endl;
         _isRunning = false;
     }
-    _log << "Worker finished" << std::endl;
+    _lastRunTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - _startTime);
+    _log << "Worker finished. Took " << _lastRunTime.count() << " microseconds" << std::endl;
 }
 
