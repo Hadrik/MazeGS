@@ -52,6 +52,10 @@ bool Infill::pop(const ContainedType type) {
     return true;
 }
 
+void Infill::clear() {
+    _stack.clear();
+}
+
 const std::variant<raylib::Color, Primitive> & Infill::top() const {
     std::lock_guard lock(_mutex);
     return _stack.back();

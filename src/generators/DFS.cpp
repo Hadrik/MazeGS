@@ -25,12 +25,12 @@ const std::string & DFS::getRegisterName() {
 void DFS::begin(std::unique_ptr<Maze> &maze) {
     maze = std::make_unique<Maze>(_w, _h, true);
     _maze = maze.get();
-    MazeCell* c = _maze->cellAt(
+    _start = _maze->cellAt(
         std::uniform_int_distribution<size_t>(0, _w - 1)(_rng),
         std::uniform_int_distribution<size_t>(0, _h - 1)(_rng)
     );
-    c->infill().push(Primitive::CROSS_LARGE);
-    _stack.push(c);
+    _start->infill().push(Primitive::CROSS_LARGE);
+    _stack.push(_start);
 }
 
 bool DFS::step() {
@@ -52,6 +52,17 @@ bool DFS::step() {
     _stack.push(next);
 
     return false;
+}
+
+void DFS::clean() {
+    auto& cells = _maze->getCells();
+    for (auto& col : cells) {
+        for (auto& cell : col) {
+            cell.clearTags();
+            cell.infill().clear();
+        }
+    }
+    _start->infill().push(RColor::Green());
 }
 
 void DFS::drawGUI() {

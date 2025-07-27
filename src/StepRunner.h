@@ -16,11 +16,12 @@ class StepRunner {
 public:
     using StepFunction = std::function<bool()>;
     using BeginFunction = std::function<void(std::unique_ptr<Maze>&)>;
+    using CleanupFunction = std::function<void()>;
 
     StepRunner() : _log(Logger::get()) {}
     ~StepRunner();
 
-    void run(const BeginFunction& begin, StepFunction step, std::unique_ptr<Maze>& maze);
+    void run(const BeginFunction& begin, StepFunction step, CleanupFunction clean, std::unique_ptr<Maze>& maze);
     void stop();
     void drawGui();
     [[nodiscard]] bool isRunning() const;
@@ -38,6 +39,7 @@ private:
     std::atomic<bool> _stepRequest = false;
 
     StepFunction _stepFunction;
+    CleanupFunction _cleanupFunction;
 
     Mode _mode = Mode::Automatic;
     int _delay = 50;

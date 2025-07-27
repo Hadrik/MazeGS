@@ -29,6 +29,8 @@ public:
     bool pop();
     bool pop(ContainedType type);
 
+    void clear();
+
     [[nodiscard]] const std::variant<raylib::Color, Primitive>& top() const;
     [[nodiscard]] const raylib::Color& topColor() const;
     [[nodiscard]] const Primitive& topPrimitive() const;

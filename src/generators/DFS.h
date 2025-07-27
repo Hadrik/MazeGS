@@ -18,6 +18,7 @@ public:
 
     void begin(std::unique_ptr<Maze>& maze) override;
     bool step() override;
+    void clean() override;
     void drawGUI() override;
 
 private:
@@ -25,6 +26,8 @@ private:
 
     int _w = 10;
     int _h = 10;
+
+    MazeCell* _start;
 
     std::mt19937 _rng;
     std::stack<MazeCell*> _stack;

@@ -14,6 +14,7 @@ public:
     void begin(std::unique_ptr<Maze>& maze) override;
     bool step() override;
     void drawGUI() override;
+    void clean() override;
 
 private:
     int _w = 10;

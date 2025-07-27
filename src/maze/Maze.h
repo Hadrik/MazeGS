@@ -25,6 +25,7 @@ public:
     [[nodiscard]] const std::vector<std::vector<MazeWall>>& getHorizontalWalls() const;
     [[nodiscard]] const std::vector<std::vector<MazeWall>>& getVerticalWalls() const;
     [[nodiscard]] const std::vector<std::vector<MazeCell>>& getCells() const;
+    [[nodiscard]] std::vector<std::vector<MazeCell>>& getCells();
     /// [width, height]
     [[nodiscard]] Vec2 getSize() const;
     [[nodiscard]] size_t getWidth() const;

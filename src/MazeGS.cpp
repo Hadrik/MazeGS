@@ -64,6 +64,7 @@ void MazeGS::loop() {
         _runner.run(
             [&](auto& m) { _generator->begin(m); },
             [&]() { return _generator->step(); },
+            [&]() { _generator->clean(); },
             _maze);
     }
     ImGui::EndDisabled();
@@ -74,6 +75,7 @@ void MazeGS::loop() {
         _runner.run(
             [&](auto& m) { _solver->begin(m); },
             [&]() { return _solver->step().has_value(); },
+            []() { },
             _maze);
     }
     ImGui::EndDisabled();

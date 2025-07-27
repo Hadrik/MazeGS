@@ -20,7 +20,10 @@ public:
     /// Call this method repeatedly until it returns <c>true</c> (generation finished)
     virtual bool step() = 0;
 
-    /// Draw ImGui menu with generators settings
+    /// Clean data created by the generation process
+    virtual void clean() = 0;
+
+    /// Draw ImGui menu with generator's settings
     virtual void drawGUI() {}
 };
 

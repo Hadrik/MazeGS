@@ -10,7 +10,7 @@ StepRunner::~StepRunner() {
     stop();
 }
 
-void StepRunner::run(const BeginFunction& begin, StepFunction step, std::unique_ptr<Maze> &maze) {
+void StepRunner::run(const BeginFunction& begin, StepFunction step, CleanupFunction clean, std::unique_ptr<Maze> &maze) {
     if (isRunning()) {
         return;
     }
@@ -19,6 +19,7 @@ void StepRunner::run(const BeginFunction& begin, StepFunction step, std::unique_
     }
     begin(maze);
     _stepFunction = std::move(step);
+    _cleanupFunction = std::move(clean);
     _isRunning = true;
     _thread = std::thread(&StepRunner::worker, this);
 }
@@ -83,6 +84,7 @@ void StepRunner::worker() {
                 }
             }
         }
+        _cleanupFunction();
     } catch (const std::exception& e) {
         _log << "Worker exception: " << e.what() << std::endl;
         _isRunning = false;

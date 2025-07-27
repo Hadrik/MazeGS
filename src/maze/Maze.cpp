@@ -106,6 +106,10 @@ const std::vector<std::vector<MazeCell>> & Maze::getCells() const {
     return _cells;
 }
 
+std::vector<std::vector<MazeCell>> & Maze::getCells() {
+    return _cells;
+}
+
 Vec2 Maze::getSize() const {
     return {getWidth(), getHeight()};
 }

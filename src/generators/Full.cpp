@@ -33,3 +33,5 @@ void Full::drawGUI() {
     ImGui::SliderInt("Width", &_w, 1, 100);
     ImGui::SliderInt("Height", &_h, 1, 100);
 }
+
+void Full::clean() {}
