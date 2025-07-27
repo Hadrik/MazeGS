@@ -13,7 +13,10 @@ class Maze;
 
 class MazeCell {
 public:
-    explicit MazeCell(Maze& parentMaze, const uint32_t col, const uint32_t row) : _column(col), _row(row), _parent(parentMaze) {};
+    explicit MazeCell(Maze& parentMaze, const uint32_t col, const uint32_t row) : _parent(parentMaze), _column(col), _row(row) {};
+    MazeCell() = delete;
+    MazeCell(const MazeCell& other) = delete;
+    MazeCell(MazeCell&& other) noexcept;
     ~MazeCell() = default;
 
     [[nodiscard]] Vec2 location() const;
@@ -36,10 +39,13 @@ public:
     [[nodiscard]] MazeCell* move(const Direction& dir) const;
 
 private:
-    Infill _infill;
-    std::set<std::string> _tags;
-    const uint32_t _column, _row;
     Maze& _parent;
+    const uint32_t _column, _row;
+
+    Infill _infill = {};
+    std::set<std::string> _tags = {};
+
+    mutable std::mutex _mutex_tags;
 };
 
 

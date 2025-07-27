@@ -18,7 +18,10 @@ public:
     };
 
     Infill() = default;
+    Infill(const Infill& other);
+    Infill(Infill&& other) noexcept;
     ~Infill() = default;
+    Infill& operator=(Infill&& other) noexcept;
 
     void push(const raylib::Color& color);
     void push(const Primitive& primitive);
@@ -33,6 +36,7 @@ public:
 
 private:
     std::vector<std::variant<raylib::Color, Primitive>> _stack;
+    mutable std::mutex _mutex = {};
 };
 
 

@@ -44,6 +44,9 @@ private:
 
     const size_t _width;
     const size_t _height;
+
+    mutable std::mutex _mutex_walls;
+    mutable std::mutex _mutex_cells;
 };
 
 

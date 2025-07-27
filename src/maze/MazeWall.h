@@ -5,11 +5,14 @@
 #ifndef MAZEWALL_H
 #define MAZEWALL_H
 
+#include <mutex>
+
 #include "raylib-cpp.hpp"
 
 class MazeWall {
 public:
     MazeWall();
+    MazeWall(const MazeWall& other);
     explicit MazeWall(bool exists);
     ~MazeWall() = default;
 
@@ -24,7 +27,10 @@ public:
 
 private:
     bool _exists;
-    std::vector<raylib::Color> _colors;
+    std::vector<raylib::Color> _colors = {};
+
+    mutable std::mutex _mutex_exists;
+    mutable std::mutex _mutex_colors;
 };
 
 

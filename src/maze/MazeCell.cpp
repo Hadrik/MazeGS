@@ -5,6 +5,15 @@
 #include "MazeCell.h"
 #include "maze/Maze.h"
 
+MazeCell::MazeCell(MazeCell &&other) noexcept
+    : _parent(other._parent),
+    _column(other._column),
+    _row(other._row)
+    {
+    _infill = std::move(other._infill);
+    _tags = std::move(other._tags);
+}
+
 Vec2 MazeCell::location() const {
     return {_column, _row};
 }
@@ -38,15 +47,18 @@ void MazeCell::connect(const Direction dir) const {
 }
 
 bool MazeCell::addTag(const std::string& tag) {
+    std::lock_guard lock(_mutex_tags);
     const auto [it, success] = _tags.insert(tag);
     return success;
 }
 
 bool MazeCell::hasTag(const std::string &tag) const {
+    std::lock_guard lock(_mutex_tags);
     return _tags.contains(tag);
 }
 
 bool MazeCell::removeTag(const std::string &tag) {
+    std::lock_guard lock(_mutex_tags);
     const auto it = _tags.find(tag);
     if (it == _tags.end()) return false;
     _tags.erase(it);
@@ -58,6 +70,7 @@ const std::set<std::string> & MazeCell::getTags() const {
 }
 
 void MazeCell::clearTags() {
+    std::lock_guard lock(_mutex_tags);
     _tags.clear();
 }
 

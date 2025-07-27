@@ -14,14 +14,14 @@ Maze::Maze(const size_t width, const size_t height, const bool fill) : _width(wi
     }
 
     // Create cells - column major
-    // _cells = std::vector(width, std::vector(height, MazeCell(*this)));
     _cells.reserve(width);
     for (size_t col = 0; col < width; col++) {
         std::vector<MazeCell> cells;
+        cells.reserve(height);
         for (size_t row = 0; row < height; row++) {
             cells.emplace_back(*this, col, row);
         }
-        _cells.push_back(cells);
+        _cells.push_back(std::move(cells));
     }
 
     // Create walls
@@ -35,6 +35,7 @@ Maze::Maze(const size_t width, const size_t height, const bool fill) : _width(wi
 }
 
 MazeCell* Maze::cellAt(const size_t col, const size_t row) {
+    std::lock_guard lock(_mutex_walls);
     try {
         MazeCell& cell = _cells.at(col).at(row);
         return &cell;
@@ -49,6 +50,7 @@ MazeCell* Maze::cellAt(const Vec2 pos) {
 }
 
 void Maze::connectCells(const size_t col1, const size_t row1, const size_t col2, const size_t row2) {
+    std::lock_guard lock(_mutex_cells);
     if (std::abs(static_cast<int>(col1) - static_cast<int>(col2)) + std::abs(static_cast<int>(row1) - static_cast<int>(row2)) != 1) {
         Logger::get() << "Trying to connect non-neighbouring cells - [" << col1 << "," << row1 << "] - [" << col2 << "," << row2 << "]" << std::endl;
         return;
