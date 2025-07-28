@@ -17,6 +17,7 @@ const raylib::Window& Renderer::InitWindow() {
     _window.Init(1000, 800, "MazeGS");
     SetTargetFPS(165);
     SetTraceLogLevel(LOG_ERROR);
+    SetExitKey(KEY_NULL);
 
     rlImGuiSetup(true);
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
@@ -61,7 +62,13 @@ void Renderer::render(const Maze* maze) {
 }
 
 std::optional<Vec2> Renderer::handleTilePicking(const Maze* maze) {
-    if (!_pickerActive || _cellSize == 0) return std::nullopt;
+    if (!_pickerActive) return std::nullopt;
+    if (raylib::Keyboard::IsKeyDown(KEY_ESCAPE)) {
+        _pickerActive = false;
+        return std::nullopt;
+    }
+    if (_cellSize == 0) return std::nullopt;
+
     Vec2 result;
 
     const ImVec2 mousePos = ImGui::GetMousePos();
