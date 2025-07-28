@@ -8,6 +8,7 @@
 #include <memory>
 #include <maze/Maze.h>
 
+#include "Factory.h"
 #include "Logger.h"
 #include "Renderer.h"
 #include "StepRunner.h"
@@ -16,7 +17,9 @@
 
 class MazeGS {
 public:
-    explicit MazeGS() : _io(ImGui::GetIO()), _log(Logger::get()) {}
+    explicit MazeGS() : _io(ImGui::GetIO()), _log(Logger::get()) {
+        Factory<ISolver>::instance().setCellPicker(&_renderer);
+    }
 
     ~MazeGS() = default;
 

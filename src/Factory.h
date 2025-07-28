@@ -10,6 +10,8 @@
 #include <string>
 #include <vector>
 
+#include "ICellPicker.h"
+
 
 template<class C>
 class Factory {
@@ -22,9 +24,13 @@ public:
         return instance;
     }
 
+    void setCellPicker(ICellPicker* cellPicker) {
+        _cellPicker = cellPicker;
+    }
+
     template<class T>
     void registerClass(const std::string& name) {
-        _creators[name] = []() { return std::make_unique<T>(); };
+        _creators[name] = [this]() { return createInstance<T>(); };
     }
 
     std::unique_ptr<C> create(const std::string& name) {
@@ -44,7 +50,18 @@ public:
 private:
     Factory() = default;
 
+    template<class T>
+    std::unique_ptr<C> createInstance() {
+        if constexpr (std::is_constructible_v<T, ICellPicker*>) {
+            if (!_cellPicker) return nullptr;
+            return std::make_unique<T>(_cellPicker);
+        } else {
+            return std::make_unique<T>();
+        }
+    }
+
     std::map<std::string, std::function<std::unique_ptr<C>()>> _creators;
+    ICellPicker* _cellPicker = nullptr;
 };
 
 

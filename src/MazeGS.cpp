@@ -52,6 +52,11 @@ void MazeGS::loop() {
         }
         ImGui::EndCombo();
     }
+    if (_solver) {
+        if (ImGui::CollapsingHeader("Solver settings")) {
+            _solver->drawGui();
+        }
+    }
 
     ImGui::End();
 

@@ -16,6 +16,9 @@ public:
 
     [[nodiscard]] virtual const std::string& getName() const = 0;
 
+    /// Returns <c>true</c> if the solver is ready to begin
+    virtual bool ready() = 0;
+
     /// Start solving
     virtual void begin(std::unique_ptr<Maze>& maze) = 0;
 

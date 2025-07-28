@@ -3,11 +3,14 @@
         MazeGS.cpp
         Logger.cpp
         Renderer.cpp
+        StepRunner.cpp
         maze/Maze.cpp
         maze/MazeWall.cpp
         maze/MazeCell.cpp
         drawing/Infill.cpp
         generators/Full.cpp
+        generators/DFS.cpp
+        solvers/PickerTest.cpp
 )
 
 set(PROJECT_HEADERS
@@ -16,16 +19,19 @@ set(PROJECT_HEADERS
         Renderer.h
         Logger.h
         Factory.h
+        StepRunner.h
+        ICellPicker.h
+        maze/Maze.h
         maze/MazeCell.h
+        maze/MazeWall.h
         drawing/Infill.h
-        solvers/ISolver.h
         generators/IGenerator.h
         generators/GeneratorBase.h
         generators/Full.h
-        StepRunner.cpp
-        StepRunner.h
-        generators/DFS.cpp
         generators/DFS.h
+        solvers/ISolver.h
+        solvers/PickerTest.h
+        solvers/SolverBase.h
 )
 
 add_executable(${PROJECT_NAME}

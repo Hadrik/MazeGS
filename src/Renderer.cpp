@@ -5,6 +5,7 @@
 #include "Renderer.h"
 
 #include <imgui.h>
+#include <algorithm>
 
 #include "rlImGui.h"
 #include "Logger.h"
@@ -43,6 +44,12 @@ void Renderer::render(const Maze* maze) {
         const float scale = std::min(size.x / width, size.y / height);
         const auto scaledWidth = static_cast<int>(width * scale), scaledHeight = static_cast<int>(height * scale);
         rlImGuiImageSize(&texture, scaledWidth, scaledHeight);
+        _lastImgPos = ImGui::GetItemRectMin();
+        _lastImgSize = ImVec2(scaledWidth, scaledHeight);
+        const auto res = handleTilePicking(maze);
+        if (res.has_value()) {
+            ImGui::SetTooltip("[%d, %d]", res.value().col, res.value().row);
+        }
     } else {
         ImGui::Text("No data");
     }
@@ -51,6 +58,36 @@ void Renderer::render(const Maze* maze) {
     Logger::get().drawWindow();
     rlImGuiEnd();
     EndDrawing();
+}
+
+std::optional<Vec2> Renderer::handleTilePicking(const Maze* maze) {
+    if (!_pickerActive || _cellSize == 0) return std::nullopt;
+    Vec2 result;
+
+    const ImVec2 mousePos = ImGui::GetMousePos();
+    const ImVec2 imgMin = _lastImgPos;
+    const ImVec2 imgMax(_lastImgPos.x + _lastImgSize.x, _lastImgPos.y + _lastImgSize.y);
+
+    if (mousePos.x < imgMin.x || mousePos.x > imgMax.x ||
+        mousePos.y < imgMin.y || mousePos.y > imgMax.y) {
+        return std::nullopt;
+    }
+
+    const ImVec2 relativePos(mousePos.x - imgMin.x, mousePos.y - imgMin.y);
+    result.col = static_cast<size_t>(relativePos.x) / _cellSize;
+    result.row = static_cast<size_t>(relativePos.y) / _cellSize;
+
+    if (maze) {
+        result.col = std::clamp(result.col, static_cast<size_t>(0), maze->getWidth() - 1);
+        result.row = std::clamp(result.row, static_cast<size_t>(0), maze->getHeight() - 1);
+    }
+
+    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && _pickCallback) {
+        _pickerActive = false;
+        _pickCallback(result);
+    }
+
+    return result;
 }
 
 raylib::Image Renderer::drawMaze(const Maze *maze, const ImVec2& maxSize) {
