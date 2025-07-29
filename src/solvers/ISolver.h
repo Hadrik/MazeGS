@@ -16,17 +16,23 @@ public:
 
     [[nodiscard]] virtual const std::string& getName() const = 0;
 
+    /// Set maze to solve
+    virtual void setMaze(Maze* maze) = 0;
+
     /// Returns <c>true</c> if the solver is ready to begin
     virtual bool ready() = 0;
 
     /// Start solving
-    virtual void begin(std::unique_ptr<Maze>& maze) = 0;
+    virtual void begin() = 0;
 
-    /// Call this method repeatedly while its returning <c>std::nopt</c>.
-    /// @return <c>std::nopt</c> solving not finished
+    /// Call this method repeatedly
+    /// @return <c>std::nullopt</c> solving not finished
     /// @return <c>true</c> maze solved
     /// @return <c>false</c> impossible to solve
     virtual std::optional<bool> step() = 0;
+
+    /// Clean any extra data from solving and leave only the found path
+    virtual void clean() = 0;
 
     /// Draw ImGui menu with solver settings
     virtual void drawGui() {}

@@ -33,7 +33,7 @@ private:
     std::stack<MazeCell*> _stack;
     Maze* _maze = nullptr;
 
-    static constexpr std::string TAG_visited = "Visited";
+    static constexpr std::string TAG_visited = "DFSVisited";
 };
 
 

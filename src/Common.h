@@ -8,7 +8,10 @@
 #include <ostream>
 #include <bitset>
 #include <cstdint>
+#include <imgui.h>
 #include <raylib-cpp.hpp>
+
+#include "Logger.h"
 
 struct Vec2;
 
@@ -26,12 +29,59 @@ struct Direction {
 
     Direction(const Dir d) : direction(d) {}
 
-    operator Dir() const {
-        return direction;
+    Direction turnCW() const {
+        if (direction == NONE) return NONE;
+        return direction == LEFT ? UP : static_cast<Dir>(direction + 1);
+    }
+    Direction turnCCW() const {
+        if (direction == NONE) return NONE;
+        return direction == UP ? LEFT : static_cast<Dir>(direction - 1);
     }
 
     Vec2 move(Dir dir);
     static Vec2 move(Vec2 pos, Dir dir);
+
+    const char* toString() const {
+        return toString(direction);
+    }
+    static const char* toString(const Dir dir) {
+        switch (dir) {
+            case NONE: return "NONE";
+            case UP: return "UP";
+            case RIGHT: return "RIGHT";
+            case DOWN: return "DOWN";
+            case LEFT: return "LEFT";
+            default: return "UNKNOWN";
+        }
+    }
+
+    static void ImGuiWidget(const char* label, Direction& dir) {
+        if (ImGui::BeginCombo(label, dir.toString())) {
+            for (const Dir d : All) {
+                const bool isSelected = dir == d;
+                if (ImGui::Selectable(toString(d))) {
+                    dir = d;
+                }
+                if (isSelected) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndCombo();
+        }
+    }
+
+    operator Dir() const {
+        return direction;
+    }
+    operator const char* () const {
+        return toString();
+    }
+    bool operator== (const Direction& other) const {
+        return direction == other.direction;
+    }
+    bool operator==(const Direction::Dir &dir) const {
+        return direction == dir;
+    }
 };
 inline std::array<Direction::Dir, 4> Direction::All = {UP, RIGHT, DOWN, LEFT};
 
@@ -53,18 +103,11 @@ public:
 };
 
 inline std::ostream& operator<<(std::ostream& os, const Direction::Dir dir) {
-    switch (dir) {
-        case Direction::NONE: return os << "NONE";
-        case Direction::UP: return os << "UP";
-        case Direction::RIGHT: return os << "RIGHT";
-        case Direction::DOWN: return os << "DOWN";
-        case Direction::LEFT: return os << "LEFT";
-        default: return os << "UNKNOWN";
-    }
+    return os << Direction::toString(dir);
 }
 
 inline std::ostream& operator<<(std::ostream& os, const Direction& dir) {
-    return os << dir.direction;
+    return os << dir.toString();
 }
 
 struct Vec2 {
@@ -76,6 +119,10 @@ struct Vec2 {
     /// @copybrief Direction::move
     [[nodiscard]] Vec2 move(const Direction d) const {
         return Direction::move(*this, d);
+    }
+
+    bool operator==(const Vec2 &other) const {
+        return col == other.col && row == other.row;
     }
 };
 using Point = Vec2;
@@ -108,6 +155,10 @@ enum class PrimitiveShape {
     CIRCLE_LARGE,
     CROSS_SMALL,
     CROSS_LARGE,
+    ARROW_UP,
+    ARROW_RIGHT,
+    ARROW_DOWN,
+    ARROW_LEFT,
 };
 
 struct Primitive {
@@ -115,24 +166,44 @@ struct Primitive {
     PrimitiveShape shape;
     raylib::Color color;
 
-    Primitive() {
-        shape = NONE;
-        color = raylib::Color::Blank();
+    Primitive() : Primitive(NONE, RColor::Black()) {}
+    Primitive(const PrimitiveShape s) : Primitive(s, RColor::Black()) {}
+    Primitive(const PrimitiveShape s, const raylib::Color& c) : shape(s), color(c) {}
+    explicit Primitive(const Direction& dir) : Primitive() {
+        switch (dir) {
+            case Direction::UP:
+                shape = ARROW_UP;
+            break;
+            case Direction::RIGHT:
+                shape = ARROW_RIGHT;
+            break;
+            case Direction::DOWN:
+                shape = ARROW_DOWN;
+            break;
+            case Direction::LEFT:
+                shape = ARROW_LEFT;
+            break;
+            default:
+                shape = NONE;
+        }
     }
-
-    Primitive(const raylib::Color &c) {
-        shape = PrimitiveShape::NONE;
+    Primitive(const Direction& dir, const raylib::Color& c) : Primitive(dir) {
         color = c;
     }
 
-    Primitive(const PrimitiveShape s) {
-        shape = s;
-        color = raylib::Color::Blank();
-    }
-
-    Primitive(const PrimitiveShape s, const raylib::Color& c) {
-        shape = s;
-        color = c;
+    explicit operator Direction() const {
+        switch (shape) {
+            case ARROW_UP:
+                return Direction::UP;
+            case ARROW_RIGHT:
+                return Direction::RIGHT;
+            case ARROW_DOWN:
+                return Direction::DOWN;
+            case ARROW_LEFT:
+                return Direction::LEFT;
+            default:
+                return Direction::NONE;
+        }
     }
 };
 

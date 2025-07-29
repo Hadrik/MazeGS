@@ -11,6 +11,7 @@
         generators/Full.cpp
         generators/DFS.cpp
         solvers/PickerTest.cpp
+        solvers/RightHand.cpp
 )
 
 set(PROJECT_HEADERS
@@ -30,8 +31,9 @@ set(PROJECT_HEADERS
         generators/Full.h
         generators/DFS.h
         solvers/ISolver.h
-        solvers/PickerTest.h
         solvers/SolverBase.h
+        solvers/PickerTest.h
+        solvers/RightHand.h
 )
 
 add_executable(${PROJECT_NAME}

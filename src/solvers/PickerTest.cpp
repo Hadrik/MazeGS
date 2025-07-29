@@ -17,15 +17,21 @@ const std::string & PickerTest::getRegisterName() {
     return name;
 }
 
+void PickerTest::setMaze(Maze *maze) {
+}
+
 bool PickerTest::ready() {
     return false;
 }
 
-void PickerTest::begin(std::unique_ptr<Maze> &maze) {
+void PickerTest::begin() {
 }
 
 std::optional<bool> PickerTest::step() {
     return true;
+}
+
+void PickerTest::clean() {
 }
 
 void PickerTest::drawGui() {

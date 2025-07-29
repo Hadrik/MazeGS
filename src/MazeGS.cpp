@@ -48,6 +48,9 @@ void MazeGS::loop() {
             if (ImGui::Selectable(name.c_str())) {
                 _log << "Set solver: " << name << std::endl;
                 _solver = std::move(Factory<ISolver>::instance().create(name));
+                if (_maze) {
+                    _solver->setMaze(_maze.get());
+                }
             }
         }
         ImGui::EndCombo();
@@ -69,17 +72,31 @@ void MazeGS::loop() {
         _runner.run(
             [&](auto& m) { _generator->begin(m); },
             [&]() { return _generator->step(); },
-            [&]() { _generator->clean(); },
+            [&]() {
+                _generator->clean();
+                if (_solver) {
+                    _solver->setMaze(_maze.get());
+                }
+            },
             _maze);
     }
     ImGui::EndDisabled();
     ImGui::SameLine();
-    ImGui::BeginDisabled(!_solver || _runner.isRunning());
+    ImGui::BeginDisabled(!_solver || !_solver->ready() || _runner.isRunning());
     if (ImGui::Button("Solve", {w, 0})) {
         _log << "Starting solver" << std::endl;
         _runner.run(
-            [&](auto& m) { _solver->begin(m); },
-            [&]() { return _solver->step().has_value(); },
+            [&](auto& m) { _solver->begin(); },
+            [&]() {
+                const auto result = _solver->step();
+                if (result.has_value()) {
+                    if (*result) {
+                        _solver->clean();
+                    }
+                    return true;
+                }
+                return false;
+            },
             []() { },
             _maze);
     }

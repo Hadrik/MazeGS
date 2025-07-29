@@ -14,9 +14,11 @@ public:
 
     static const std::string& getRegisterName();
 
+    void setMaze(Maze *maze) override;
     bool ready() override;
-    void begin(std::unique_ptr<Maze> &maze) override;
+    void begin() override;
     std::optional<bool> step() override;
+    void clean() override;
 
     void drawGui() override;
 

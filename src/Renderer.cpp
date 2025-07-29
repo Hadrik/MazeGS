@@ -12,6 +12,10 @@
 
 raylib::Window Renderer::_window = raylib::Window();
 
+Renderer::Renderer() {
+    createInfills();
+}
+
 const raylib::Window& Renderer::InitWindow() {
     SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT | FLAG_WINDOW_RESIZABLE);
     _window.Init(1000, 800, "MazeGS");
@@ -136,43 +140,94 @@ void Renderer::drawCells(const Maze *maze, raylib::Image &img) const {
     }
 }
 
-void Renderer::drawCellInfill(raylib::Image &img, const raylib::Rectangle &bounds, const MazeCell &cell) {
+void Renderer::createInfills() {
+    // Square
+    RImage square(_infillSize, _infillSize, RColor::Blank());
+    square.DrawRectangleLines({0, 0, _infillSize, _infillSize}, 4, RColor::Black());
+    _infills[0] = square;
+
+    // Circle
+    RImage circle(_infillSize, _infillSize, RColor::Blank());
+    ImageDrawCircleLines(&circle, _infillSize / 2, _infillSize / 2, _infillSize / 2, RColor::Black());
+    _infills[1] = circle;
+
+    // Cross
+    RImage cross(_infillSize, _infillSize, RColor::Blank());
+    cross.DrawLine(0, 0, _infillSize, _infillSize, RColor::Black());
+    cross.DrawLine(0, _infillSize, _infillSize, 0, RColor::Black());
+    _infills[2] = cross;
+
+    // Triangle
+    RImage triangle(_infillSize, _infillSize, RColor::Blank());
+    triangle.DrawLine(_infillSize / 2, 0, 0, _infillSize, RColor::Black());
+    triangle.DrawLine(_infillSize / 2, 0, _infillSize, _infillSize, RColor::Black());
+    triangle.DrawLine(0, _infillSize, _infillSize, _infillSize, RColor::Black());
+    _infills[3] = triangle;
+
+    // Arrows
+    RImage arrowUp(_infillSize, _infillSize, RColor::Blank());
+    arrowUp.DrawLine(_infillSize / 2, 0, _infillSize / 2, _infillSize, RColor::Black());
+    arrowUp.DrawLine(_infillSize / 2, 0, _infillSize / 4, _infillSize / 4, RColor::Black());
+    arrowUp.DrawLine(_infillSize / 2, 0, _infillSize * 0.75f, _infillSize / 4, RColor::Black());
+    _infills[4] = arrowUp;
+
+    RImage arrowRight = arrowUp;
+    arrowRight.RotateCW();
+    _infills[5] = arrowRight;
+
+    RImage arrowDown = arrowUp;
+    arrowDown.FlipVertical();
+    _infills[6] = arrowDown;
+
+    RImage arrowLeft = arrowUp;
+    arrowLeft.RotateCCW();
+    _infills[7] = arrowLeft;
+}
+
+void Renderer::drawCellInfill(raylib::Image &img, const raylib::Rectangle &bounds, const MazeCell &cell) const {
     const auto& [color, prim] = cell.infill().topPair();
     img.DrawRectangle(bounds, color); // TODO: Default cell color has to be white because drawing `Blank` overwrites instead of blends. Fix?
     const auto rs = scaleRect(bounds, 0.4f);
     const auto rl = scaleRect(bounds, 0.8f);
+    const auto ris = Rectangle(0, 0, _infillSize, _infillSize);
 
+    // TODO: I hate this. Do something smarter pls
     switch (prim.shape) {
         case Primitive::SQUARE_SMALL:
-            img.DrawRectangleLines(rs, 2, prim.color);
+            img.Draw(_infills.at(0), ris, rs);
         break;
         case Primitive::SQUARE_LARGE:
-            img.DrawRectangleLines(rl, 2, prim.color);
+            img.Draw(_infills.at(0), ris, rl);
         break;
         case Primitive::CIRCLE_SMALL:
-            ImageDrawCircleLinesV(&img, (bounds.GetSize() / 2) + bounds.GetPosition(), rs.GetWidth() / 2, prim.color);
+            img.Draw(_infills.at(1), ris, rs);
         break;
         case Primitive::CIRCLE_LARGE:
-            ImageDrawCircleLinesV(&img, (bounds.GetSize() / 2) + bounds.GetPosition(), rl.GetWidth() / 2, prim.color);
+            img.Draw(_infills.at(1), ris, rl);
         break;
         case Primitive::CROSS_SMALL:
-            img.DrawLine(rs.GetX(), rs.GetY(), rs.GetX() + rs.GetWidth(), rs.GetY() + rs.GetHeight(), prim.color);
-            img.DrawLine(rs.GetX() + rs.GetWidth(), rs.GetY(), rs.GetX(), rs.GetY() + rs.GetHeight(), prim.color);
+            img.Draw(_infills.at(2), ris, rs);
         break;
         case Primitive::CROSS_LARGE:
-            img.DrawLine(rl.GetX(), rl.GetY(), rl.GetX() + rl.GetWidth(), rl.GetY() + rl.GetHeight(), prim.color);
-            img.DrawLine(rl.GetX() + rl.GetWidth(), rl.GetY(), rl.GetX(), rl.GetY() + rl.GetHeight(), prim.color);
+            img.Draw(_infills.at(2), ris, rl);
         break;
         case PrimitiveShape::TRIANGLE_SMALL:
-            img.DrawLine((rs.GetWidth() - rs.GetX()) / 2, rs.GetY(), rs.GetX() + rs.GetWidth(), rs.GetY() + rs.GetHeight(), prim.color);
-            img.DrawLine((rs.GetWidth() - rs.GetX()) / 2, rs.GetY(), rs.GetX(), rs.GetY() + rs.GetHeight(), prim.color);
-            img.DrawLine(rs.GetX(), rs.GetY() + rs.GetHeight(), rs.GetX() + rs.GetWidth(), rs.GetY() + rs.GetHeight(), prim.color);
+            img.Draw(_infills.at(3), ris, rs);
         break;
         case PrimitiveShape::TRIANGLE_LARGE:
-            img.DrawLine((rl.GetWidth() - rl.GetX()) / 2, rl.GetY(), rl.GetX() + rl.GetWidth(), rl.GetY() + rl.GetHeight(), prim.color);
-            img.DrawLine((rl.GetWidth() - rl.GetX()) / 2, rl.GetY(), rl.GetX(), rl.GetY() + rl.GetHeight(), prim.color);
-            img.DrawLine(rl.GetX(), rl.GetY() + rl.GetHeight(), rl.GetX() + rl.GetWidth(), rl.GetY() + rl.GetHeight(), prim.color);
+            img.Draw(_infills.at(3), ris, rl);
         break;
+        case PrimitiveShape::ARROW_UP:
+            img.Draw(_infills.at(4), ris, rl);
+        break;
+        case PrimitiveShape::ARROW_RIGHT:
+            img.Draw(_infills.at(5), ris, rl);
+        break;
+        case PrimitiveShape::ARROW_DOWN:
+            img.Draw(_infills.at(6), ris, rl);
+        break;
+        case PrimitiveShape::ARROW_LEFT:
+            img.Draw(_infills.at(7), ris, rl);
         default:
         break;
     }
@@ -187,7 +242,7 @@ void Renderer::drawGrid(const Maze *maze, raylib::Image &img) const {
 
             const Vector2 start = {.x = static_cast<float>(col * _cellSize), .y = static_cast<float>((row + 1) * _cellSize)};
             const Vector2 end = {.x = static_cast<float>((col + 1) * _cellSize), .y = static_cast<float>((row + 1) * _cellSize)};
-            img.DrawLine(start, end, 2, w.getTopColor());
+            img.DrawLine(start, end, 4, w.getTopColor());
         }
     }
 
@@ -199,14 +254,14 @@ void Renderer::drawGrid(const Maze *maze, raylib::Image &img) const {
 
             const Vector2 start = {.x = static_cast<float>((col + 1) * _cellSize), .y = static_cast<float>(row * _cellSize)};
             const Vector2 end = {.x = static_cast<float>((col + 1) * _cellSize), .y = static_cast<float>((row + 1) * _cellSize)};
-            img.DrawLine(start, end, 2, w.getTopColor());
+            img.DrawLine(start, end, 4, w.getTopColor());
         }
     }
 }
 
 raylib::Rectangle Renderer::scaleRect(const raylib::Rectangle &rect, const float scale) {
-    const float newWidth = rect.width * (1.0f - scale);
-    const float newHeight = rect.height * (1.0f - scale);
+    const float newWidth = rect.width * scale;
+    const float newHeight = rect.height * scale;
 
     const float offsetX = (rect.width - newWidth) / 2.0f;
     const float offsetY = (rect.height - newHeight) / 2.0f;

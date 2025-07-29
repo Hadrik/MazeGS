@@ -6,15 +6,17 @@
 #define RENDERER_H
 
 #include <imgui.h>
+#include <map>
 #include <optional>
 #include <raylib-cpp.hpp>
 
 #include "ICellPicker.h"
 #include "maze/Maze.h"
 
-class Renderer : public ICellPicker {
+// TODO: Need complete rework, really slow on large mazes
+class Renderer final : public ICellPicker {
 public:
-    Renderer() = default;
+    Renderer();
     ~Renderer() = default;
 
     static const raylib::Window& InitWindow();
@@ -27,18 +29,22 @@ public:
 
 private:
     std::optional<Vec2> handleTilePicking(const Maze* maze = nullptr);
+    void createInfills();
+
     raylib::Image drawMaze(const Maze* maze, const ImVec2& maxSize);
     void drawCells(const Maze* maze, raylib::Image& img) const;
-    static void drawCellInfill(raylib::Image& img, const raylib::Rectangle& bounds, const MazeCell& cell) ;
+    void drawCellInfill(raylib::Image& img, const raylib::Rectangle& bounds, const MazeCell& cell) const;
     void drawGrid(const Maze* maze, raylib::Image& img) const;
 
-    [[nodiscard]] static raylib::Rectangle scaleRect(const raylib::Rectangle& rect, float scale) ;
+    [[nodiscard]] static raylib::Rectangle scaleRect(const raylib::Rectangle& rect, float scale);
 
     int _cellSize;
     bool _pickerActive = false;
     PickCallback _pickCallback;
     ImVec2 _lastImgPos;
     ImVec2 _lastImgSize;
+    std::map<int, raylib::Image> _infills; // TODO: int as key is stupid
+    const float _infillSize = 100.f;
 
     static raylib::Window _window;
 };
