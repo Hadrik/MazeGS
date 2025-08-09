@@ -26,7 +26,7 @@ GPU::GPU() {
     glfwSwapInterval(1);
     gladLoadGL(glfwGetProcAddress);
     glViewport(0, 0, 1200, 800);
-    glfwSetFramebufferSizeCallback(_window, [](GLFWwindow* window, int width, int height) {
+    glfwSetFramebufferSizeCallback(_window, [](GLFWwindow*, const int width, const int height) {
         glViewport(0, 0, width, height);
     });
 
@@ -40,18 +40,32 @@ GPU::GPU() {
     ImGui_ImplGlfw_InitForOpenGL(_window, true);
     ImGui_ImplOpenGL3_Init();
 
+    vao = vbo = ebo = ivbo = sid = fbo = rbo = tcb = tid = 0;
+
     loadShader("CellShader.vert", "CellShader.frag");
 
-    float verts[] = {
-        0.5f, 0.5f, 0.0f,
-        0.5f, -0.5f, 0.0f,
-        -0.5f, -0.5f, 0.0f,
-        -0.5f, 0.5f, 0.0f,
+    glGenTextures(1, &tid);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, tid);
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, 100, 100, 5, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    const auto imgs = loadSprites();
+    for (size_t i = 0; i < imgs.size(); i++) {
+        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(i), 100, 100, 1, GL_RGBA, GL_UNSIGNED_BYTE, imgs.at(i).GetData());
+    }
+    glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
+    glUniform1i(glGetUniformLocation(sid, "spriteSheet"), 0);
+
+    const float verts[] = {
+        1.0f, 0.0f,   1.0f, 0.0f,
+        1.0f, -1.0f,  1.0f, 1.0f,
+        0.0f, -1.0f,  0.0f, 1.0f,
+        0.0f, 0.0f,   0.0f, 0.0f,
     };
-    unsigned int indices[] = {
+    const unsigned int indices[] = {
         0, 1, 3,
         1, 2, 3
     };
+
+    glGenBuffers(1, &ivbo);
 
     glGenVertexArrays(1, &vao);
     glGenBuffers(1, &vbo);
@@ -64,8 +78,28 @@ GPU::GPU() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), &indices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), nullptr);
     glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), reinterpret_cast<void *>(2 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(3);
+    glEnableVertexAttribArray(4);
+    glEnableVertexAttribArray(5);
+    glEnableVertexAttribArray(6);
+    glBindBuffer(GL_ARRAY_BUFFER, ivbo);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(InstanceData), nullptr);
+    glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(InstanceData), reinterpret_cast<void *>(2 * sizeof(float)));
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(InstanceData), reinterpret_cast<void *>(4 * sizeof(float)));
+    glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, sizeof(InstanceData), reinterpret_cast<void *>(7 * sizeof(float)));
+    glVertexAttribIPointer(6, 1, GL_INT, sizeof(InstanceData), reinterpret_cast<void *>(8 * sizeof(float)));
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glVertexAttribDivisor(2, 1);
+    glVertexAttribDivisor(3, 1);
+    glVertexAttribDivisor(4, 1);
+    glVertexAttribDivisor(5, 1);
+    glVertexAttribDivisor(6, 1);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
@@ -112,20 +146,23 @@ void GPU::newFrame() {
 void GPU::render(const Maze *maze) {
     glfwPollEvents();
 
-    resizeFramebuffer(Vec2(10, 10));
-    // resizeFramebuffer(Vec2(maze->getWidth(), maze->getHeight()));
+    if (maze) {
+        resizeFramebuffer(Vec2(maze->getWidth(), maze->getHeight()));
 
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-    glViewport(0, 0, _textureWidth, _textureHeight);
-    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        glViewport(0, 0, _textureWidth, _textureHeight);
+        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glUseProgram(sid);
-    glBindVertexArray(vao);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+        const int instances = generateInstanceBufferData(maze);
+        glUseProgram(sid);
+        glBindVertexArray(vao);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D_ARRAY, tid);
+        glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr, instances);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
 
     int dw, dh;
     glfwGetFramebufferSize(_window, &dw, &dh);
@@ -135,27 +172,35 @@ void GPU::render(const Maze *maze) {
 
     ImGui::Begin("Maze view");
     {
-        ImVec2 availSize = ImGui::GetContentRegionAvail();
-        ImVec2 imageSize = availSize;
-        float textureAspectRatio = static_cast<float>(_textureWidth) / static_cast<float>(_textureHeight);
-        float availAspectRatio = availSize.x / availSize.y;
+        if (maze) {
+            ImVec2 availSize = ImGui::GetContentRegionAvail();
+            ImVec2 imageSize = availSize;
+            float textureAspectRatio = static_cast<float>(_textureWidth) / static_cast<float>(_textureHeight);
+            float availAspectRatio = availSize.x / availSize.y;
 
-        if (textureAspectRatio > availAspectRatio) {
-            imageSize.y = availSize.x / textureAspectRatio;
+            if (textureAspectRatio > availAspectRatio) {
+                imageSize.y = availSize.x / textureAspectRatio;
+            } else {
+                imageSize.x = availSize.y * textureAspectRatio;
+            }
+
+            ImVec2 cPos = ImGui::GetCursorPos();
+            cPos.x += (availSize.x - imageSize.x) / 2;
+            cPos.y += (availSize.y - imageSize.y) / 2;
+            ImGui::SetCursorPos(cPos);
+
+            ImGui::Image(tcb, imageSize, {0, 1}, {1, 0});
         } else {
-            imageSize.x = availSize.y * textureAspectRatio;
+            ImGui::Text("No maze generated");
         }
-
-        ImVec2 cPos = ImGui::GetCursorPos();
-        cPos.x += (availSize.x - imageSize.x) / 2;
-        cPos.y += (availSize.y - imageSize.y) / 2;
-        ImGui::SetCursorPos(cPos);
-
-        ImGui::Image(tcb, imageSize, {0, 1}, {1, 0});
     }
     ImGui::End();
 
     Logger::get().drawWindow();
+
+    if (_isPickerActive && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+        handleCellPicking(maze);
+    }
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -194,6 +239,49 @@ void GPU::resizeFramebuffer(const Vec2 mazeSize) {
     }
 }
 
+int GPU::generateInstanceBufferData(const Maze *maze) const {
+    const size_t width = maze->getWidth();
+    const size_t height = maze->getHeight();
+
+    std::vector<InstanceData> data;
+    data.reserve(width * height);
+
+    const InstanceData::CellScale scale = {
+        .x = 2.0f / width,
+        .y = 2.0f / height
+    };
+
+    for (size_t col = 0; col < width; col++) {
+        for (size_t row = 0; row < height; row++) {
+            const auto& cell = maze->getCells().at(col).at(row);
+            InstanceData i {};
+
+            i.vertOffset = InstanceData::VertOffset {
+                .x = -1.0f + col * scale.x,
+                .y = 1.0f - row * scale.y
+            };
+            i.cellScale = scale;
+
+            const auto& c = cell.infill().topColor();
+            i.color = InstanceData::Color {
+                .r = c.r / 255.0f,
+                .g = c.g / 255.0f,
+                .b = c.b / 255.0f
+            };
+            i.spriteRotation = mapPrimitiveToSpriteRotation(cell.infill().topPrimitive().shape);
+            i.spriteOffset = mapPrimitiveToSpriteLocation(cell.infill().topPrimitive().shape);
+
+            data.emplace_back(i);
+        }
+    }
+
+    glBindBuffer(GL_ARRAY_BUFFER, ivbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(InstanceData) * data.size(), data.data(), GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    return width * height;
+}
+
 void GPU::renderWalls() {
     // for (const auto& wall : _walls) {
     //     DrawLineEx(wall.start, wall.end, wall.thickness, wall.color);
@@ -201,7 +289,9 @@ void GPU::renderWalls() {
 }
 
 void GPU::handleCellPicking(const Maze *maze) {
-    Vector2 mousePos = GetMousePosition();
+    // TODO: Broken
+
+    ImVec2 mousePos = ImGui::GetMousePos();
 
     ImVec2 contentPos = ImGui::GetWindowContentRegionMin();
     ImVec2 windowPos = ImGui::GetWindowPos();
@@ -287,20 +377,51 @@ void GPU::loadShader(const char *v, const char *f) {
     sid = program;
 }
 
+std::vector<RImage> GPU::loadSprites() const {
+    std::filesystem::path base = SRC_DIR;
+    const char* names[] = {
+        "Arrow.png",
+        "Circle.png",
+        "Cross.png",
+        "Square.png",
+        "Triangle.png",
+    };
+
+    std::vector<RImage> result;
+    result.reserve(5);
+
+    for (const auto name : names) {
+        std::filesystem::path path = base / name;
+
+        result.emplace_back(path.string());
+    }
+
+    return result;
+}
+
 int GPU::mapPrimitiveToSpriteLocation(const PrimitiveShape shape) {
     switch (shape) {
         case PrimitiveShape::SQUARE_SMALL:
-        case PrimitiveShape::SQUARE_LARGE: return 0;
+        case PrimitiveShape::SQUARE_LARGE: return 3;
         case PrimitiveShape::TRIANGLE_SMALL:
-        case PrimitiveShape::TRIANGLE_LARGE: return 100;
+        case PrimitiveShape::TRIANGLE_LARGE: return 4;
         case PrimitiveShape::CIRCLE_SMALL:
-        case PrimitiveShape::CIRCLE_LARGE: return 200;
+        case PrimitiveShape::CIRCLE_LARGE: return 1;
         case PrimitiveShape::CROSS_SMALL:
-        case PrimitiveShape::CROSS_LARGE: return 300;
+        case PrimitiveShape::CROSS_LARGE: return 2;
         case PrimitiveShape::ARROW_UP:
         case PrimitiveShape::ARROW_RIGHT:
         case PrimitiveShape::ARROW_DOWN:
-        case PrimitiveShape::ARROW_LEFT: return 400;
+        case PrimitiveShape::ARROW_LEFT: return 0;
+        default: return -1;
+    }
+}
+
+float GPU::mapPrimitiveToSpriteRotation(const PrimitiveShape shape) {
+    switch (shape) {
+        case PrimitiveShape::ARROW_RIGHT: return 90 * DEG2RAD;
+        case PrimitiveShape::ARROW_DOWN: return 180 * DEG2RAD;
+        case PrimitiveShape::ARROW_LEFT: return 270 * DEG2RAD;
         default: return 0;
     }
 }
