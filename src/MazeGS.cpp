@@ -7,11 +7,14 @@
 #include <imgui.h>
 
 #include "Factory.h"
-#include "Logger.h"
-#include "Renderer.h"
+
+MazeGS::MazeGS() : _log(Logger::get()) {
+    Factory<ISolver>::instance().setCellPicker(_renderer.get());
+    _io = &ImGui::GetIO();
+}
 
 void MazeGS::loop() {
-    Renderer::newFrame();
+    _renderer->newFrame();
     ImGui::Begin("Config");
 
     if (ImGui::BeginCombo("Log target", Logger::get().getTargetName().c_str())) {
@@ -19,6 +22,19 @@ void MazeGS::loop() {
             if (ImGui::Selectable(name.c_str())) {
                 _log << "Set logger target: " << name << std::endl;
                 Logger::get().setTarget(target);
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+    ImGui::Separator();
+
+    if (ImGui::BeginCombo("Renderer", _renderer->getName().c_str())) {
+        for (const auto& name : Factory<IRenderer>::instance().getRegisteredNames()) {
+            if (ImGui::Selectable(name.c_str())) {
+                _log << "Set renderer: " << name << std::endl;
+                _swapRenderer = true;
+                _rendererName = name;
             }
         }
         ImGui::EndCombo();
@@ -104,5 +120,18 @@ void MazeGS::loop() {
     _runner.drawGui();
 
     ImGui::End();
-    _renderer.render(_maze.get());
+    _renderer->render(_maze.get());
+
+    if (_swapRenderer) {
+        // Destroy old before swapping to new
+        _renderer = nullptr;
+        _renderer = Factory<IRenderer>::instance().create(_rendererName);
+        Factory<ISolver>::instance().setCellPicker(_renderer.get());
+        _log << "Renderer '" << _rendererName << "' created" << std::endl;
+        _swapRenderer = false;
+    }
+}
+
+bool MazeGS::shouldExit() const {
+    return _renderer->shouldExit();
 }

@@ -10,22 +10,26 @@
 #include <optional>
 #include <raylib-cpp.hpp>
 
-#include "ICellPicker.h"
 #include "maze/Maze.h"
+#include "../IRenderer.h"
 
-// TODO: Need complete rework, really slow on large mazes
-class Renderer final : public ICellPicker {
+class CPU final : public IRenderer {
 public:
-    Renderer();
-    ~Renderer() = default;
+    CPU();
+    ~CPU() override;
 
-    static const raylib::Window& InitWindow();
-    static void newFrame();
-    void render(const Maze* maze);
+    void newFrame() override;
+    void render(const Maze* maze) override;
+    bool shouldExit() override;
 
-    void startPicker(PickCallback cb) override { _pickCallback = cb; _pickerActive = true; }
+    void startPicker(const PickCallback cb) override { _pickCallback = cb; _pickerActive = true; }
     bool isPickerActive() override { return _pickerActive; }
 
+    [[nodiscard]] const std::string & getName() const override { return getRegisterName(); }
+    [[nodiscard]] static const std::string& getRegisterName() {
+        static std::string registerName("CPU");
+        return registerName;
+    }
 
 private:
     std::optional<Vec2> handleTilePicking(const Maze* maze = nullptr);
@@ -38,15 +42,13 @@ private:
 
     [[nodiscard]] static raylib::Rectangle scaleRect(const raylib::Rectangle& rect, float scale);
 
-    int _cellSize;
+    int _cellSize = 0;
     bool _pickerActive = false;
     PickCallback _pickCallback;
     ImVec2 _lastImgPos;
     ImVec2 _lastImgSize;
-    std::map<int, raylib::Image> _infills; // TODO: int as key is stupid
+    std::map<int, raylib::Image> _infills;
     const float _infillSize = 100.f;
-
-    static raylib::Window _window;
 };
 
 

@@ -8,13 +8,14 @@
 #include <optional>
 #include <string>
 #include <maze/Maze.h>
+#include "Factory.h"
 
 
-class ISolver {
+class ISolver : public IFactoryCreatable {
 public:
-    virtual ~ISolver() = default;
+    ~ISolver() override = default;
 
-    [[nodiscard]] virtual const std::string& getName() const = 0;
+    [[nodiscard]] const std::string& getName() const override = 0;
 
     /// Set maze to solve
     virtual void setMaze(Maze* maze) = 0;

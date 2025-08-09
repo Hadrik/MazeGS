@@ -64,9 +64,16 @@ private:
     ICellPicker* _cellPicker = nullptr;
 };
 
+class IFactoryCreatable {
+public:
+    virtual ~IFactoryCreatable() = default;
+
+    [[nodiscard]] virtual const std::string& getName() const = 0;
+};
 
 template<class B, class T>
 class FactoryRegistrar {
+    static_assert(std::is_base_of_v<IFactoryCreatable, B>);
 public:
     explicit FactoryRegistrar() {
         Factory<B>::instance().template registerClass<T>(T::getRegisterName());

@@ -7,12 +7,14 @@
 #include <memory>
 #include <maze/Maze.h>
 
+#include "Factory.h"
 
-class IGenerator {
+
+class IGenerator : public IFactoryCreatable {
 public:
-    virtual ~IGenerator() = default;
+    ~IGenerator() override = default;
 
-    [[nodiscard]] virtual const std::string& getName() const = 0;
+    [[nodiscard]] const std::string& getName() const override = 0;
 
     /// Start generation
     virtual void begin(std::unique_ptr<Maze>& maze) = 0;

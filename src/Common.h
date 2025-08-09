@@ -55,6 +55,10 @@ struct Direction {
         }
     }
 
+    constexpr float toRad() const {
+        return DEG2RAD * ((direction - 1) * 90.f);
+    }
+
     static void ImGuiWidget(const char* label, Direction& dir) {
         if (ImGui::BeginCombo(label, dir.toString())) {
             for (const Dir d : All) {
@@ -111,7 +115,12 @@ inline std::ostream& operator<<(std::ostream& os, const Direction& dir) {
 }
 
 struct Vec2 {
-    size_t col, row;
+    union {
+        size_t col, width, x;
+    };
+    union {
+        size_t row, height, y;
+    };
 
     Vec2() : col(0), row(0) {}
     Vec2(const size_t c, const size_t r) : col(c), row(r) {}
@@ -124,8 +133,26 @@ struct Vec2 {
     bool operator==(const Vec2 &other) const {
         return col == other.col && row == other.row;
     }
+
+    Vec2& operator= (const ImVec2& v) {
+        col = static_cast<size_t>(v.x);
+        row = static_cast<size_t>(v.y);
+        return *this;
+    }
+
+    operator Vector2() const {
+        return {.x = static_cast<float>(x), .y = static_cast<float>(y)};
+    }
 };
 using Point = Vec2;
+inline Rectangle MakeRectangle(const Vec2& position, const Vec2& size) {
+    return Rectangle{
+        static_cast<float>(position.x),
+        static_cast<float>(position.y),
+        static_cast<float>(size.width),
+        static_cast<float>(size.height)
+    };
+}
 
 /// @brief Moves position in direction. Doesn't check if the new position is valid.
 inline Vec2 Direction::move(const Vec2 pos, const Dir dir) {

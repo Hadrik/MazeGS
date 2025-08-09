@@ -8,31 +8,32 @@
 #include <memory>
 #include <maze/Maze.h>
 
-#include "Factory.h"
 #include "Logger.h"
-#include "Renderer.h"
 #include "StepRunner.h"
+#include "renderers/GPU/GPU.h"
 #include "generators/IGenerator.h"
 #include "solvers/ISolver.h"
 
 class MazeGS {
 public:
-    explicit MazeGS() : _io(ImGui::GetIO()), _log(Logger::get()) {
-        Factory<ISolver>::instance().setCellPicker(&_renderer);
-    }
-
+    MazeGS();
     ~MazeGS() = default;
 
     void loop();
+
+    bool shouldExit() const;
 
 private:
     std::unique_ptr<Maze> _maze = nullptr;
     std::unique_ptr<IGenerator> _generator = nullptr;
     std::unique_ptr<ISolver> _solver = nullptr;
+    std::unique_ptr<IRenderer> _renderer = {std::make_unique<GPU>()};
     StepRunner _runner;
-    Renderer _renderer {};
 
-    ImGuiIO& _io;
+    bool _swapRenderer = false;
+    std::string _rendererName;
+
+    ImGuiIO* _io;
     Logger& _log;
 };
 

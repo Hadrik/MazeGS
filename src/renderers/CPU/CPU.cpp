@@ -2,7 +2,7 @@
 // Created by trric on 7/19/2025.
 //
 
-#include "Renderer.h"
+#include "CPU.h"
 
 #include <imgui.h>
 #include <algorithm>
@@ -10,34 +10,37 @@
 #include "rlImGui.h"
 #include "Logger.h"
 
-raylib::Window Renderer::_window = raylib::Window();
-
-Renderer::Renderer() {
-    createInfills();
+namespace {
+    FactoryRegistrar<IRenderer, CPU> registrar;
 }
 
-const raylib::Window& Renderer::InitWindow() {
+CPU::CPU() {
+    createInfills();
     SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT | FLAG_WINDOW_RESIZABLE);
-    _window.Init(1000, 800, "MazeGS");
+    InitWindow(1200, 800, "MazeGS");
     SetTargetFPS(165);
     SetTraceLogLevel(LOG_ERROR);
     SetExitKey(KEY_NULL);
 
     rlImGuiSetup(true);
+
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
     ImGui::GetIO().ConfigDebugIsDebuggerPresent = true;
-
-    return _window;
 }
 
-void Renderer::newFrame() {
+CPU::~CPU() {
+    rlImGuiShutdown();
+    CloseWindow();
+}
+
+void CPU::newFrame() {
     BeginDrawing();
     rlImGuiBegin();
     ImGui::DockSpaceOverViewport();
 }
 
-void Renderer::render(const Maze* maze) {
+void CPU::render(const Maze* maze) {
     // Works
     ImGui::Begin("Maze");
     const ImVec2 size = ImGui::GetContentRegionAvail();
@@ -65,7 +68,11 @@ void Renderer::render(const Maze* maze) {
     EndDrawing();
 }
 
-std::optional<Vec2> Renderer::handleTilePicking(const Maze* maze) {
+bool CPU::shouldExit() {
+    return WindowShouldClose();
+}
+
+std::optional<Vec2> CPU::handleTilePicking(const Maze* maze) {
     if (!_pickerActive) return std::nullopt;
     if (raylib::Keyboard::IsKeyDown(KEY_ESCAPE)) {
         _pickerActive = false;
@@ -101,7 +108,7 @@ std::optional<Vec2> Renderer::handleTilePicking(const Maze* maze) {
     return result;
 }
 
-raylib::Image Renderer::drawMaze(const Maze *maze, const ImVec2& maxSize) {
+raylib::Image CPU::drawMaze(const Maze *maze, const ImVec2& maxSize) {
     if (!maze) {
         raylib::Image img(100, 10, RColor::Blank());
         img.DrawText("No maze generated", 1, 0, 10, RColor::White());
@@ -126,7 +133,7 @@ raylib::Image Renderer::drawMaze(const Maze *maze, const ImVec2& maxSize) {
     return img;
 }
 
-void Renderer::drawCells(const Maze *maze, raylib::Image &img) const {
+void CPU::drawCells(const Maze *maze, raylib::Image &img) const {
     const auto& cells = maze->getCells();
     for (const auto& col : cells) {
         for (const auto& cell : col) {
@@ -140,7 +147,7 @@ void Renderer::drawCells(const Maze *maze, raylib::Image &img) const {
     }
 }
 
-void Renderer::createInfills() {
+void CPU::createInfills() {
     // Square
     RImage square(_infillSize, _infillSize, RColor::Blank());
     square.DrawRectangleLines({0, 0, _infillSize, _infillSize}, 4, RColor::Black());
@@ -184,14 +191,13 @@ void Renderer::createInfills() {
     _infills[7] = arrowLeft;
 }
 
-void Renderer::drawCellInfill(raylib::Image &img, const raylib::Rectangle &bounds, const MazeCell &cell) const {
+void CPU::drawCellInfill(raylib::Image &img, const raylib::Rectangle &bounds, const MazeCell &cell) const {
     const auto& [color, prim] = cell.infill().topPair();
-    img.DrawRectangle(bounds, color); // TODO: Default cell color has to be white because drawing `Blank` overwrites instead of blends. Fix?
+    img.DrawRectangle(bounds, color);
     const auto rs = scaleRect(bounds, 0.4f);
     const auto rl = scaleRect(bounds, 0.8f);
     const auto ris = Rectangle(0, 0, _infillSize, _infillSize);
 
-    // TODO: I hate this. Do something smarter pls
     switch (prim.shape) {
         case Primitive::SQUARE_SMALL:
             img.Draw(_infills.at(0), ris, rs);
@@ -233,7 +239,7 @@ void Renderer::drawCellInfill(raylib::Image &img, const raylib::Rectangle &bound
     }
 }
 
-void Renderer::drawGrid(const Maze *maze, raylib::Image &img) const {
+void CPU::drawGrid(const Maze *maze, raylib::Image &img) const {
     const auto& hWalls = maze->getHorizontalWalls();
     for (size_t col = 0; col < hWalls.size(); ++col) {
         for (size_t row = 0; row < hWalls.at(0).size(); ++row) {
@@ -259,7 +265,7 @@ void Renderer::drawGrid(const Maze *maze, raylib::Image &img) const {
     }
 }
 
-raylib::Rectangle Renderer::scaleRect(const raylib::Rectangle &rect, const float scale) {
+raylib::Rectangle CPU::scaleRect(const raylib::Rectangle &rect, const float scale) {
     const float newWidth = rect.width * scale;
     const float newHeight = rect.height * scale;
 

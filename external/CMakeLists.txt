@@ -7,6 +7,8 @@ FetchContent_Declare(raylib
         EXCLUDE_FROM_ALL
         SYSTEM)
 FetchContent_MakeAvailable(raylib)
+FetchContent_GetProperties(raylib SOURCE_DIR RAYLIB_SRC)
+target_include_directories(raylib INTERFACE ${RAYLIB_SRC}/src/external/glfw/include)
 
 FetchContent_Declare(raylib-cpp
         GIT_REPOSITORY https://github.com/RobLoach/raylib-cpp.git
@@ -45,10 +47,13 @@ add_library(imgui STATIC
         ${IMGUI_DIR}/imgui_draw.cpp
         ${IMGUI_DIR}/imgui_tables.cpp
         ${IMGUI_DIR}/imgui_widgets.cpp
+        ${IMGUI_BACKENDS_DIR}/imgui_impl_glfw.cpp
+        ${IMGUI_BACKENDS_DIR}/imgui_impl_opengl3.cpp
 )
 
 target_include_directories(imgui PUBLIC
         ${IMGUI_DIR}
+        ${IMGUI_BACKENDS_DIR}
 )
 
-#target_link_libraries(imgui PUBLIC raylib-imgui)
+target_link_libraries(imgui PRIVATE raylib)
