@@ -249,6 +249,9 @@ void GPU::render(const Maze *maze) {
             ImGui::SetCursorPos(cPos);
 
             ImGui::Image(tcb, imageSize, {0, 1}, {1, 0});
+            if (_isPickerActive && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                handleCellPicking(maze);
+            }
         } else {
             ImGui::Text("No maze generated");
         }
@@ -256,10 +259,6 @@ void GPU::render(const Maze *maze) {
     ImGui::End();
 
     Logger::get().drawWindow();
-
-    if (_isPickerActive && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-        handleCellPicking(maze);
-    }
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -418,17 +417,21 @@ int GPU::generateWallBufferData(const Maze *maze) const {
 }
 
 void GPU::handleCellPicking(const Maze *maze) {
-    // TODO: Broken
+    const ImVec2 mousePos = ImGui::GetMousePos();
 
-    ImVec2 mousePos = ImGui::GetMousePos();
+    const ImVec2 imagePos = ImGui::GetItemRectMin();
+    const ImVec2 imageSize = ImGui::GetItemRectSize();
 
-    ImVec2 contentPos = ImGui::GetWindowContentRegionMin();
-    ImVec2 windowPos = ImGui::GetWindowPos();
-    mousePos.x -= contentPos.x + windowPos.x;
-    mousePos.y -= contentPos.y + windowPos.y;
+    if (mousePos.x < imagePos.x || mousePos.x > imagePos.x + imageSize.x ||
+        mousePos.y < imagePos.y || mousePos.y > imagePos.y + imageSize.y) {
+        return;
+    }
 
-    auto col = static_cast<size_t>(mousePos.x / CELL_SIZE);
-    auto row = static_cast<size_t>(mousePos.y / CELL_SIZE);
+    const float relX = (mousePos.x - imagePos.x) / imageSize.x;
+    const float relY = (mousePos.y - imagePos.y) / imageSize.y;
+
+    auto col = static_cast<size_t>(relX * maze->getWidth());
+    auto row = static_cast<size_t>(relY * maze->getHeight());
 
     if (row < maze->getHeight() && col < maze->getWidth()) {
         if (_pickerCallback) {
