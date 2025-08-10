@@ -30,7 +30,7 @@ public:
     }
 
 private:
-    struct InstanceData {
+    struct CellInstanceData {
         struct VertOffset {
             float x, y;
         } vertOffset;
@@ -46,20 +46,34 @@ private:
         int spriteOffset;
     };
 
+    struct WallInstanceData {
+        struct StartPoint {
+            float x, y;
+        } startPoint;
+        struct EndPoint {
+            float x, y;
+        } endPoint;
+        float thickness;
+        struct Color {
+            float r, g, b;
+        } color;
+    };
+
     void resizeFramebuffer(Vec2 mazeSize);
-    int generateInstanceBufferData(const Maze* maze) const;
-    void renderWalls();
-    static int mapPrimitiveToSpriteLocation(PrimitiveShape shape);
-    static float mapPrimitiveToSpriteRotation(PrimitiveShape shape);
+    int generateCellBufferData(const Maze* maze) const;
+    int generateWallBufferData(const Maze* maze) const;
+    static int mapPrimitiveToSpriteLocation(const Primitive& shape);
+    static float mapPrimitiveToSpriteRotation(const Primitive& shape);
+    static float mapPrimitiveToSpriteScale(const Primitive& shape);
     void handleCellPicking(const Maze *maze);
-    void loadShader(const char* v, const char* f);
+    unsigned int loadShader(const char* v, const char* f);
     std::vector<RImage> loadSprites() const;
 
     const unsigned int CELL_SIZE = 100;
     GLFWwindow* _window;
 
     int _textureWidth, _textureHeight;
-    unsigned int vao, vbo, ebo, ivbo, sid, fbo, rbo, tcb, tid;
+    unsigned int cvao, cvbo, cebo, civbo, csid, wvao, wvbo, webo, wivbo, wsid, fbo, rbo, tcb, tid;
 
     bool _isPickerActive = false;
     PickCallback _pickerCallback;

@@ -40,10 +40,12 @@ GPU::GPU() {
     ImGui_ImplGlfw_InitForOpenGL(_window, true);
     ImGui_ImplOpenGL3_Init();
 
-    vao = vbo = ebo = ivbo = sid = fbo = rbo = tcb = tid = 0;
+    cvao = cvbo = cebo = civbo = csid = wvao = wvbo = webo = wivbo = wsid = fbo = rbo = tcb = tid = 0;
 
-    loadShader("CellShader.vert", "CellShader.frag");
+    csid = loadShader("CellShader.vert", "CellShader.frag");
+    wsid = loadShader("WallShader.vert", "WallShader.frag");
 
+    // Sprite sheet
     glGenTextures(1, &tid);
     glBindTexture(GL_TEXTURE_2D_ARRAY, tid);
     glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, 100, 100, 5, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
@@ -58,31 +60,31 @@ GPU::GPU() {
         glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(i), 100, 100, 1, GL_RGBA, GL_UNSIGNED_BYTE, imgs.at(i).GetData());
     }
     glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
-    glUniform1i(glGetUniformLocation(sid, "spriteSheet"), 0);
+    glUniform1i(glGetUniformLocation(csid, "spriteSheet"), 0);
 
-    const float verts[] = {
+    // Cell shader
+    const float cell_mesh_verts[] = {
         1.0f, 0.0f,   1.0f, 0.0f,
         1.0f, -1.0f,  1.0f, 1.0f,
         0.0f, -1.0f,  0.0f, 1.0f,
         0.0f, 0.0f,   0.0f, 0.0f,
     };
-    const unsigned int indices[] = {
+    const unsigned int cell_mesh_indices[] = {
         0, 1, 3,
         1, 2, 3
     };
 
-    glGenBuffers(1, &ivbo);
+    glGenBuffers(1, &civbo);
+    glGenVertexArrays(1, &cvao);
+    glGenBuffers(1, &cvbo);
+    glGenBuffers(1, &cebo);
+    glBindVertexArray(cvao);
 
-    glGenVertexArrays(1, &vao);
-    glGenBuffers(1, &vbo);
-    glGenBuffers(1, &ebo);
-    glBindVertexArray(vao);
+    glBindBuffer(GL_ARRAY_BUFFER, cvbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cell_mesh_verts), &cell_mesh_verts, GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(verts), &verts, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), &indices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, cebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cell_mesh_indices), &cell_mesh_indices, GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), nullptr);
     glEnableVertexAttribArray(0);
@@ -95,13 +97,13 @@ GPU::GPU() {
     glEnableVertexAttribArray(5);
     glEnableVertexAttribArray(6);
     glEnableVertexAttribArray(7);
-    glBindBuffer(GL_ARRAY_BUFFER, ivbo);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(InstanceData), nullptr);
-    glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(InstanceData), reinterpret_cast<void *>(2 * sizeof(float)));
-    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(InstanceData), reinterpret_cast<void *>(4 * sizeof(float)));
-    glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, sizeof(InstanceData), reinterpret_cast<void *>(7 * sizeof(float)));
-    glVertexAttribPointer(6, 1, GL_FLOAT, GL_FALSE, sizeof(InstanceData), reinterpret_cast<void *>(8 * sizeof(float)));
-    glVertexAttribIPointer(7, 1, GL_INT, sizeof(InstanceData), reinterpret_cast<void *>(9 * sizeof(float)));
+    glBindBuffer(GL_ARRAY_BUFFER, civbo);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(CellInstanceData), nullptr);
+    glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(CellInstanceData), reinterpret_cast<void *>(2 * sizeof(float)));
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(CellInstanceData), reinterpret_cast<void *>(4 * sizeof(float)));
+    glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, sizeof(CellInstanceData), reinterpret_cast<void *>(7 * sizeof(float)));
+    glVertexAttribPointer(6, 1, GL_FLOAT, GL_FALSE, sizeof(CellInstanceData), reinterpret_cast<void *>(8 * sizeof(float)));
+    glVertexAttribIPointer(7, 1, GL_INT, sizeof(CellInstanceData), reinterpret_cast<void *>(9 * sizeof(float)));
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glVertexAttribDivisor(2, 1);
     glVertexAttribDivisor(3, 1);
@@ -110,10 +112,53 @@ GPU::GPU() {
     glVertexAttribDivisor(6, 1);
     glVertexAttribDivisor(7, 1);
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
+    // Wall shader
+    const float wall_mesh_verts[] = {
+        -0.5f, -0.5f,
+        0.5f, -0.5f,
+        0.5f, 0.5f,
+        -0.5f, 0.5f
+    };
+    const unsigned int wall_mesh_indicies[] = {
+        0, 1, 3,
+        1, 2, 3
+    };
 
+    glGenBuffers(1, &wivbo);
+    glGenVertexArrays(1, &wvao);
+    glGenBuffers(1, &wvbo);
+    glGenBuffers(1, &webo);
+    glBindVertexArray(wvao);
+
+    glBindBuffer(GL_ARRAY_BUFFER, wvbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(wall_mesh_verts), &wall_mesh_verts, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, webo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(wall_mesh_indicies), &wall_mesh_indicies, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, nullptr);
+    glEnableVertexAttribArray(0);
+
+    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(3);
+    glEnableVertexAttribArray(4);
+    glBindBuffer(GL_ARRAY_BUFFER, wivbo);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(WallInstanceData), nullptr);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(WallInstanceData), reinterpret_cast<void *>(2 * sizeof(float)));
+    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(WallInstanceData), reinterpret_cast<void *>(4 * sizeof(float)));
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(WallInstanceData), reinterpret_cast<void *>(5 * sizeof(float)));
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glVertexAttribDivisor(1, 1);
+    glVertexAttribDivisor(2, 1);
+    glVertexAttribDivisor(3, 1);
+    glVertexAttribDivisor(4, 1);
+
+    glBindVertexArray(0);
+
+    // Framebuffer
     glGenFramebuffers(1, &fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
@@ -134,10 +179,10 @@ GPU::~GPU() {
     glDeleteFramebuffers(1, &fbo);
     glDeleteTextures(1, &tcb);
     glDeleteRenderbuffers(1, &rbo);
-    glDeleteVertexArrays(1, &vao);
-    glDeleteBuffers(1, &vbo);
-    glDeleteBuffers(1, &vbo);
-    glDeleteProgram(sid);
+    glDeleteVertexArrays(1, &cvao);
+    glDeleteBuffers(1, &cvbo);
+    glDeleteBuffers(1, &cvbo);
+    glDeleteProgram(csid);
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
@@ -163,12 +208,17 @@ void GPU::render(const Maze *maze) {
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        const int instances = generateInstanceBufferData(maze);
-        glUseProgram(sid);
-        glBindVertexArray(vao);
+        const int cell_instances = generateCellBufferData(maze);
+        glUseProgram(csid);
+        glBindVertexArray(cvao);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D_ARRAY, tid);
-        glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr, instances);
+        glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr, cell_instances);
+
+        const int wall_instances = generateWallBufferData(maze);
+        glUseProgram(wsid);
+        glBindVertexArray(wvao);
+        glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr, wall_instances);
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
@@ -248,14 +298,14 @@ void GPU::resizeFramebuffer(const Vec2 mazeSize) {
     }
 }
 
-int GPU::generateInstanceBufferData(const Maze *maze) const {
+int GPU::generateCellBufferData(const Maze *maze) const {
     const size_t width = maze->getWidth();
     const size_t height = maze->getHeight();
 
-    std::vector<InstanceData> data;
+    std::vector<CellInstanceData> data;
     data.reserve(width * height);
 
-    const InstanceData::CellScale scale = {
+    const CellInstanceData::CellScale scale = {
         .x = 2.0f / width,
         .y = 2.0f / height
     };
@@ -263,39 +313,108 @@ int GPU::generateInstanceBufferData(const Maze *maze) const {
     for (size_t col = 0; col < width; col++) {
         for (size_t row = 0; row < height; row++) {
             const auto& cell = maze->getCells().at(col).at(row);
-            InstanceData i {};
+            CellInstanceData i {};
 
-            i.vertOffset = InstanceData::VertOffset {
+            i.vertOffset = CellInstanceData::VertOffset {
                 .x = -1.0f + col * scale.x,
                 .y = 1.0f - row * scale.y
             };
             i.cellScale = scale;
 
             const auto& c = cell.infill().topColor();
-            i.color = InstanceData::Color {
+            i.color = CellInstanceData::Color {
                 .r = c.r / 255.0f,
                 .g = c.g / 255.0f,
                 .b = c.b / 255.0f
             };
-            i.spriteRotation = mapPrimitiveToSpriteRotation(cell.infill().topPrimitive().shape);
-            i.spriteScale = 0.5f;
-            i.spriteOffset = mapPrimitiveToSpriteLocation(cell.infill().topPrimitive().shape);
+            i.spriteRotation = mapPrimitiveToSpriteRotation(cell.infill().topPrimitive());
+            i.spriteScale = mapPrimitiveToSpriteScale(cell.infill().topPrimitive());
+            i.spriteOffset = mapPrimitiveToSpriteLocation(cell.infill().topPrimitive());
 
             data.emplace_back(i);
         }
     }
 
-    glBindBuffer(GL_ARRAY_BUFFER, ivbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(InstanceData) * data.size(), data.data(), GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, civbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(CellInstanceData) * data.size(), data.data(), GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     return width * height;
 }
 
-void GPU::renderWalls() {
-    // for (const auto& wall : _walls) {
-    //     DrawLineEx(wall.start, wall.end, wall.thickness, wall.color);
-    // }
+int GPU::generateWallBufferData(const Maze *maze) const {
+    const size_t hWidth = maze->getHorizontalWalls().size();
+    const size_t hHeight = maze->getHorizontalWalls().at(0).size();
+    const size_t vWidth = maze->getVerticalWalls().size();
+    const size_t vHeight = maze->getVerticalWalls().at(0).size();
+
+    std::vector<WallInstanceData> data;
+    data.reserve(hWidth * hHeight + vWidth * vHeight);
+
+    const float hScale = 2.0f / hWidth;
+    const float vScale = 2.0f / vHeight;
+
+    for (size_t col = 0; col < hWidth; col++) {
+        for (size_t row = 0; row < hHeight; row++) {
+            const auto& wall = maze->getHorizontalWalls().at(col).at(row);
+            if (!wall) continue;
+
+            WallInstanceData i {};
+
+            i.startPoint = {
+                .x = -1.0f + col * hScale,
+                .y = 1.0f - (row + 1) * vScale
+            };
+            i.endPoint = {
+                .x = -1.0f + (col + 1) * hScale,
+                .y = i.startPoint.y
+            };
+
+            const auto& c = wall.getTopColor();
+            i.color = {
+                .r = c.r / 255.0f,
+                .g = c.g / 255.0f,
+                .b = c.b / 255.0f
+            };
+            i.thickness = 0.01f; // TODO: Create a setting for this
+
+            data.emplace_back(i);
+        }
+    }
+
+    for (size_t col = 0; col < vWidth; col++) {
+        for (size_t row = 0; row < vHeight; row++) {
+            const auto& wall = maze->getVerticalWalls().at(col).at(row);
+            if (!wall) continue;
+
+            WallInstanceData i {};
+
+            i.startPoint = {
+                .x = -1.0f + (col + 1) * hScale,
+                .y = 1.0f - row * vScale
+            };
+            i.endPoint = {
+                .x = i.startPoint.x,
+                .y = 1.0f - (row + 1) * vScale
+            };
+
+            const auto& c = wall.getTopColor();
+            i.color = {
+                .r = c.r / 255.0f,
+                .g = c.g / 255.0f,
+                .b = c.b / 255.0f
+            };
+            i.thickness = 0.01f; // TODO: Create a setting for this
+
+            data.emplace_back(i);
+        }
+    }
+
+    glBindBuffer(GL_ARRAY_BUFFER, wivbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(WallInstanceData) * data.size(), data.data(), GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    return data.size();
 }
 
 void GPU::handleCellPicking(const Maze *maze) {
@@ -320,7 +439,7 @@ void GPU::handleCellPicking(const Maze *maze) {
     }
 }
 
-void GPU::loadShader(const char *v, const char *f) {
+unsigned int GPU::loadShader(const char *v, const char *f) {
     std::filesystem::path base = SRC_DIR;
     std::filesystem::path vert_path = base / v;
     std::filesystem::path frag_path = base / f;
@@ -384,7 +503,7 @@ void GPU::loadShader(const char *v, const char *f) {
     glDeleteShader(vert_id);
     glDeleteShader(frag_id);
 
-    sid = program;
+    return program;
 }
 
 std::vector<RImage> GPU::loadSprites() const {
@@ -409,8 +528,8 @@ std::vector<RImage> GPU::loadSprites() const {
     return result;
 }
 
-int GPU::mapPrimitiveToSpriteLocation(const PrimitiveShape shape) {
-    switch (shape) {
+int GPU::mapPrimitiveToSpriteLocation(const Primitive& shape) {
+    switch (shape.shape) {
         case PrimitiveShape::SQUARE_SMALL:
         case PrimitiveShape::SQUARE_LARGE: return 3;
         case PrimitiveShape::TRIANGLE_SMALL:
@@ -427,11 +546,25 @@ int GPU::mapPrimitiveToSpriteLocation(const PrimitiveShape shape) {
     }
 }
 
-float GPU::mapPrimitiveToSpriteRotation(const PrimitiveShape shape) {
-    switch (shape) {
-        case PrimitiveShape::ARROW_RIGHT: return 90 * DEG2RAD;
-        case PrimitiveShape::ARROW_DOWN: return 180 * DEG2RAD;
-        case PrimitiveShape::ARROW_LEFT: return 270 * DEG2RAD;
-        default: return 0;
+float GPU::mapPrimitiveToSpriteRotation(const Primitive& shape) {
+    return static_cast<Direction>(shape).toRad();
+}
+
+float GPU::mapPrimitiveToSpriteScale(const Primitive& shape) {
+    switch (shape.shape) {
+        case PrimitiveShape::SQUARE_SMALL:
+        case PrimitiveShape::TRIANGLE_SMALL:
+        case PrimitiveShape::CIRCLE_SMALL:
+        case PrimitiveShape::CROSS_SMALL: return 0.4f;
+        case PrimitiveShape::SQUARE_LARGE:
+        case PrimitiveShape::TRIANGLE_LARGE:
+        case PrimitiveShape::CIRCLE_LARGE:
+        case PrimitiveShape::CROSS_LARGE:
+        case PrimitiveShape::ARROW_UP:
+        case PrimitiveShape::ARROW_RIGHT:
+        case PrimitiveShape::ARROW_DOWN:
+        case PrimitiveShape::ARROW_LEFT: return 0.8f;
+        default: return  1.0f;
     }
 }
+
