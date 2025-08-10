@@ -42,6 +42,7 @@ private:
             float r, g, b;
         } color;
         float spriteRotation;
+        float spriteScale;
         int spriteOffset;
     };
 

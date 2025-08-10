@@ -47,6 +47,12 @@ GPU::GPU() {
     glGenTextures(1, &tid);
     glBindTexture(GL_TEXTURE_2D_ARRAY, tid);
     glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, 100, 100, 5, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    const float border_color[] = {
+        0.0f, 0.0f, 0.0f, 0.0f
+    };
+    glTexParameterfv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, border_color);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     const auto imgs = loadSprites();
     for (size_t i = 0; i < imgs.size(); i++) {
         glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, static_cast<int>(i), 100, 100, 1, GL_RGBA, GL_UNSIGNED_BYTE, imgs.at(i).GetData());
@@ -88,18 +94,21 @@ GPU::GPU() {
     glEnableVertexAttribArray(4);
     glEnableVertexAttribArray(5);
     glEnableVertexAttribArray(6);
+    glEnableVertexAttribArray(7);
     glBindBuffer(GL_ARRAY_BUFFER, ivbo);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(InstanceData), nullptr);
     glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(InstanceData), reinterpret_cast<void *>(2 * sizeof(float)));
     glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(InstanceData), reinterpret_cast<void *>(4 * sizeof(float)));
     glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, sizeof(InstanceData), reinterpret_cast<void *>(7 * sizeof(float)));
-    glVertexAttribIPointer(6, 1, GL_INT, sizeof(InstanceData), reinterpret_cast<void *>(8 * sizeof(float)));
+    glVertexAttribPointer(6, 1, GL_FLOAT, GL_FALSE, sizeof(InstanceData), reinterpret_cast<void *>(8 * sizeof(float)));
+    glVertexAttribIPointer(7, 1, GL_INT, sizeof(InstanceData), reinterpret_cast<void *>(9 * sizeof(float)));
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glVertexAttribDivisor(2, 1);
     glVertexAttribDivisor(3, 1);
     glVertexAttribDivisor(4, 1);
     glVertexAttribDivisor(5, 1);
     glVertexAttribDivisor(6, 1);
+    glVertexAttribDivisor(7, 1);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
@@ -269,6 +278,7 @@ int GPU::generateInstanceBufferData(const Maze *maze) const {
                 .b = c.b / 255.0f
             };
             i.spriteRotation = mapPrimitiveToSpriteRotation(cell.infill().topPrimitive().shape);
+            i.spriteScale = 0.5f;
             i.spriteOffset = mapPrimitiveToSpriteLocation(cell.infill().topPrimitive().shape);
 
             data.emplace_back(i);

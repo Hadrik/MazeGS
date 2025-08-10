@@ -8,7 +8,8 @@ layout (location = 3) in vec2 aCellScale;
 
 layout (location = 4) in vec3 aColor;
 layout (location = 5) in float aSpriteRotation;
-layout (location = 6) in int aSpriteOffset;
+layout (location = 6) in float aSpriteScale;
+layout (location = 7) in int aSpriteOffset;
 
 out vec4 bgColor;
 flat out int spriteOffset;
@@ -21,5 +22,5 @@ void main() {
     bgColor = vec4(aColor, 1.0);
     spriteOffset = aSpriteOffset;
     spriteRotation = aSpriteRotation;
-    texCoords = aTexCoords;
+    texCoords = (aTexCoords - 0.5) / aSpriteScale + 0.5;
 }
